@@ -43,6 +43,10 @@ class ServersManager:
         for s in self.servers:
             yield s
 
+    def change_rpc_wait_timeout(self, new_wt):
+        for server in self.servers:
+            server.protocol.wait_response_time = new_wt
+
     def stop_node(self, node_id, say_bye=True):
         rm_id = None
         for server in self.servers:
@@ -268,6 +272,7 @@ class TestDHTNetwork(unittest.TestCase):
             self.assertEqual(len(prev), 3)
 
             sm.stop_node(NODES[1][2], say_bye=False)
+            sm.change_rpc_wait_timeout(.5)
             prev = None
             for server in sm.iter(): 
                 print('======FINDING key after node failed...')
