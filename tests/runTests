@@ -1,0 +1,19 @@
+#!/usr/bin/python
+
+import os
+import sys
+
+path = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.abspath('.'))
+
+for item in os.listdir(path):
+    if not item.endswith('.py'):
+        continue
+
+    print '====== %s ======'%item
+    ret = os.system('python3 %s'%os.path.join(path, item))
+    if ret:
+        print('[ERROR] Tests failed!')
+        sys.exit(1)
+
+sys.exit(0)
