@@ -176,6 +176,12 @@ class RoutingTable(object):
             if node.long_id < bucket.range[1]:
                 return index
 
+    def iterate(self):
+        for neighbour in TableTraverser(self, self.node):
+            if self.node == neighbour:
+                continue
+            yield neighbour
+
     def find_neighbors(self, node, k=None, exclude=None):
         k = k or self.ksize
         nodes = []

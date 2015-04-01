@@ -66,6 +66,7 @@ class NodeHeap(object):
         self.node = node
         self.heap = []
         self.heap_ids = set()
+        self.removed_ids = set()
         self.contacted = set()
         self.maxsize = maxsize
 
@@ -79,6 +80,8 @@ class NodeHeap(object):
             nodes = [nodes]
 
         for node in nodes:
+            if node.node_id in self.removed_ids:
+                continue
             distance = self.node.distance(node)
             if node.node_id in self.heap_ids:
                 continue
@@ -103,6 +106,7 @@ class NodeHeap(object):
             else:
                 self.heap_ids.remove(node.node_id)
         self.heap = nheap
+        self.removed_ids = self.removed_ids.union(peer_ids)
 
     def get_node_by_id(self, node_id):
         for _, node in self.heap:

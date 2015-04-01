@@ -43,10 +43,21 @@ class ServersManager:
         for s in self.servers:
             yield s
 
+    def stop_node(self, node_id, say_bye=True):
+        rm_id = None
+        for server in self.servers:
+            if server.node.node_id == node_id:
+                rm_id = server
+                loop.run_until_complete(server.stop(say_bye))
+                break
+        if rm_id is None:
+            raise RuntimeError('node "%s" does not found'%node_id)
+
+        self.servers.remove(rm_id)
 
     def stop_all(self):
         for server in self.servers:
-            server.stop()
+            loop.run_until_complete(server.stop())
 
         self.servers = set()
 
@@ -241,6 +252,32 @@ class TestDHTNetwork(unittest.TestCase):
                 if prev:
                     self.assertEqual(ret, prev)
                 prev = ret
+
+            sm.stop_node(NODES[0][2])
+            loop.run_until_complete(asyncio.sleep(.2))
+
+            prev = None
+            for server in sm.iter(): 
+                print('======FINDING key after node failed...')
+                ret = server.find_node('test key')
+                ret = sm.wait_result(ret)
+                print(ret)
+                if prev:
+                    self.assertEqual(ret, prev)
+                prev = ret
+            self.assertEqual(len(prev), 3)
+
+            sm.stop_node(NODES[1][2], say_bye=False)
+            prev = None
+            for server in sm.iter(): 
+                print('======FINDING key after node failed...')
+                ret = server.find_node('test key')
+                ret = sm.wait_result(ret)
+                print(ret)
+                if prev:
+                    self.assertEqual(ret, prev)
+                prev = ret
+            self.assertEqual(len(prev), 2)
         finally:
             sm.stop_all()
 

@@ -82,7 +82,7 @@ class TestDHTNetwork(unittest.TestCase):
         finally:
             server.close()
 
-    def test_performance_rpc(self):
+    def __test_performance_rpc(self):
         server = Process(target=start_server_forever, args=(TestUDPRPC, 5677))
         server.start()
         time.sleep(.5)

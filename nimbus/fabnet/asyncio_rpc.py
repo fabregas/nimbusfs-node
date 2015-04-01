@@ -47,10 +47,10 @@ class AbstractRPC(asyncio.Protocol):
         self.transport = transport
 
     def _accept_request(self, msg_id, data, address):
-        if not isinstance(data, list) or len(data) != 2:
+        if not isinstance(data, list) or len(data) != 3:
             raise RuntimeError("Could not read packet: %s" % data)
 
-        funcname, args = data
+        funcname, args, kwargs = data
         api_method = getattr(self, "api_%s" % funcname, None)
         if api_method is None or not callable(api_method):
             logger.info("%s has no callable method api_%s; ignoring request",
@@ -74,7 +74,8 @@ class AbstractRPC(asyncio.Protocol):
             self._send_response(address, txdata)
 
         resp = asyncio.async(proc_request(address, *args))
-        resp.add_done_callback(resp_func)
+        if not kwargs.get('nowait', False):
+            resp.add_done_callback(resp_func)
 
     def _accept_response(self, msg_id, data, address):
         if msg_id not in self._outstanding:
@@ -100,15 +101,19 @@ class AbstractRPC(asyncio.Protocol):
             pass
 
         @asyncio.coroutine
-        def func(address, *args):
+        def func(address, *args, **kwargs):
             msg_id = sha1(str(random.getrandbits(255)).encode()).digest()
-            data = pickle.dumps([name, args])
+            data = pickle.dumps([name, args, kwargs])
             if len(data) > 8192:
                 raise RuntimeError('RPC message is too long! Max is 8K')
 
             txdata = b'\x00' + msg_id + data + PM_END
 
             isok = yield from self._send_request(address, txdata)
+
+            if kwargs.get('nowait', False):
+                return isok
+
             if isok is False:
                 future = asyncio.Future()
                 future.set_result(None)

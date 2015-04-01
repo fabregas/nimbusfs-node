@@ -42,6 +42,12 @@ class ManagementProtocol(UDPRPC):
         self.add_contact(source)
         return tuple(self.source_node)
 
+    def api_bye(self, sender, source):
+        source.host = sender[0]
+        source.port = sender[1]
+        logger.info('node %s is down now. removing it...', source)
+        self.router.remove_contact(source)
+
     def api_find_node(self, sender, source_node_id, key):
         source = self.check_contact(source_node_id, sender)
         node = DHTNode(key)
@@ -83,6 +89,12 @@ class ManagementProtocol(UDPRPC):
         address = (node_to_ask.host, node_to_ask.port)
         resp = yield from self.ping(address, self.source_node)
         return self.handle_call_response(node_to_ask, resp)
+
+    @asyncio.coroutine
+    def call_bye(self, node_to_ask):
+        address = (node_to_ask.host, node_to_ask.port)
+        resp = yield from self.bye(address, self.source_node, nowait=True)
+        return resp
 
     @asyncio.coroutine
     def call_find_node(self, node_to_ask, node_to_find):

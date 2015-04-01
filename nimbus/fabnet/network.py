@@ -64,11 +64,22 @@ class Server(object):
 
         self.ext_api.listen(self.loop, '0.0.0.0', ext_port)
 
-    def stop(self):
-        if self.__transport:
-            self.__transport.close()
+    @asyncio.coroutine
+    def stop(self, say_bye=True):
+        if self.__transport is None:
+            return
+
+        logger.info('stopping {} ...'.format(self.node))
+
+        if say_bye:
+            for node in self.protocol.router.iterate():
+                ret = yield from self.protocol.call_bye(node)
+
+        self.__transport.close()
         if self.ext_api:
             self.ext_api.close()
+        self.__transport = None
+        self.ext_api = None
 
     def new_node_signal(self, new_node):
         asyncio.async(self.transfer_key_values(new_node))
@@ -99,7 +110,7 @@ class Server(object):
                     neighbors[0].distance(keynode)
 
             if len(neighbors) == 0 or (new_node_close and this_node_closest):
-                res = yield from self.call_store(node, key, value)  # FIXME
+                res = yield from self.protocol.call_store(node, key, value)  # FIXME
                 ds.append(res)
         return ds
 
